@@ -1,0 +1,32 @@
+rules_version = '2';
+
+// Crafting a secure, production-ready storage architecture.
+// 1. PUBLIC: Can read all product assets (images/files).
+// 2. ADMIN ONLY: Can write (upload), update, or delete any content.
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    // Default deny
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+    
+    // Helper for admin check
+    function isAdmin() {
+      return request.auth != null && (
+        firestore.exists(/databases/(default)/documents/admins/$(request.auth.uid)) ||
+        request.auth.token.email == 'hamze.zakarie@gmail.com'
+      );
+    }
+
+    // Product data structure
+    match /products/{productId}/{allPaths=**} {
+      // Public reading
+      allow read: if true;
+      
+      // Only admins can modify
+      allow write: if isAdmin();
+    }
+  }
+}
